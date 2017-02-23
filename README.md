@@ -1,5 +1,4 @@
 # cell
-<<<<<<< HEAD
 
 FIXME: description
 
@@ -37,4 +36,3 @@ Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.
 =======
 Fetch &amp; compare module.
->>>>>>> 4246283b97a03ed0c2456e93cb007b7d5d180fc3
