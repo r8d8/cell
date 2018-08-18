@@ -158,71 +158,114 @@
 ;        (drop-while #(apply not= %))
 ;        (ffirst)))
 
-(def precedence '{* 0, / 0
-                  + 1, - 1})
+;(def precedence '{* 0, / 0
+;                  + 1, - 1})
+
+(require '[clojure.string :as str])
 
 (def ops {'* *
           '+ +
           '- -
           '/ /})
 
-(defn order-ops
-  "((A x B) y C) or (A x (B y C)) depending on precedence of x and y"
-  [[A x B y C & more]]
-  (let [ret (if (<=  (precedence x)
-                     (precedence y))
-              (list (list A x B) y C)
-              (list A x (list B y C)))]
-    (if more
-      (recur (concat ret more))
-      ret)))
+(def buf #{})
 
-(defn add-parens
-  "Tree walk to add parens.  All lists are length 3 afterwards."
+(def stack-sign [])
+
+(defn tpos?
+  ""
+  []
+  (-> (filter #(= % "-"))
+      (even?))
+  )
+
+;
+;(defn order-ops
+;  "((A x B) y C) or (A x (B y C)) depending on precedence of x and y"
+;  [[A x B y C & more]]
+;  (let [ret (if (<=  (precedence x)
+;                     (precedence y))
+;              (list (list A x B) y C)
+;              (list A x (list B y C)))]
+;    (if more
+;      (recur (concat ret more))
+;      ret)))
+
+;(defn add-parens
+;  "Tree walk to add parens.  All lists are length 3 afterwards."
+;  [s]
+;  (clojure.walk/postwalk
+;   #(if (seq? %)
+;      (let [c (count %)]
+;        (cond (even? c) (throw (Exception. "Must be an odd number of forms"))
+;              (= c 1) (first %)
+;              (= c 3) %
+;              (>= c 5) (order-ops %)))
+;      %)
+;   s))
+
+(defn to-map
+  "Add coeficient to vars"
+  [var coef]
+  (-> (get buf var [])
+      (conj coef))
+  )
+
+(defn remove-parens
+  "Unwrap parens from expression using stack"
   [s]
-  (clojure.walk/postwalk
-   #(if (seq? %)
-      (let [c (count %)]
-        (cond (even? c) (throw (Exception. "Must be an odd number of forms"))
-              (= c 1) (first %)
-              (= c 3) %
-              (>= c 5) (order-ops %)))
-      %)
-   s))
+  (map #(case %
+          ["-" "+"] (conj stack-sign %)
+          "(" ()
+          ")" (pop stack-sign)
+          "default" ((let [ [_ c v] (re-matches #"(\d+)([a-z])?" %)]
+                        (if (tpos?)
+                          (to-map v (Integer. c)))
+                          (to-map v (* -1 (Integer. c))))
+                        (pop stack-sign))))
+  s)
 
-(defn make-ast
+
+(defn parse
   "Parse a string into a list of numbers, ops, and lists"
   [s]
   (-> (format "'(%s)" s)
-      (.replaceAll , "([*+-/])" " $1 ")
-      load-string
-      add-parens))
+      (.replaceAll , "([+-])" " $1 ")
+      (str/split #" ")
+      remove-parens))
 
-(defn can_simplify?
-  [s]
+(defn simplify
+  "Calculate coeficients and construct expression"
+  []
+  (doseq [[k v] buf] (prn k v)))
 
-  )
-
-(defn simplify-one
-  [s]
-
-  )
-
-(def eval-ast
-  (partial clojure.walk/postwalk
-           #(if (can_simplify? %)
-              (let [[a o b] %]
-                ((ops o) a b))
-              %)))
+;(def eval-ast
+;  (partial clojure.walk/postwalk
+;           #(if (seq? %)
+;              ;(simplify-seq %)
+;              (let [[a o b] %]
+;                ((ops o) a b))
+;              %)))
 
 (defn evaluate [s]
   "Parse and evaluate an infix arithmetic expression"
-  (eval-ast (make-ast s)))
-
+  ;(eval-ast (make-ast s))
+  (def c (parse s))
+  (println ">>> DEBUG coeficient map:" c)
+  (let [res (simplify)]
+    (println ">>> DEBUG res:" res)))
 
 (defn -main
   "Read from STDIN"
   [& args]
+
+  ;(loop [i 0]
+  ;  (when (< i n)
+  ;    (def a (read-line))
+  ;    (def new (split a #"\s+"))
+  ;    (println ( + (Integer/parseInt (get new 0)) (Integer/parseInt (get new 1)) ))
+  ;    (recur (inc i))
+  ;    ))
 
   (loop [input (read-line)]
     (if (= ":done" input)

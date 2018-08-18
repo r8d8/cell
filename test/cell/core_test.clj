@@ -3,10 +3,17 @@
             [cell.core :refer :all]))
 
 
+;(deftest simplify-seq-test
+;  (testing
+;    (are [test-in simplified]
+;      (= simplified (simplify-seq test-in))
+;      "1x + 6y " "1x + 6y"
+;      "1x - 6x " "-5x"
+;      "1x - 6y + 2z + 3 + 2z - 3 " "1x - 6y + 4z")))
+
 (deftest simplify-test
-  (testing "FIXME, I fail."
+  (testing
     (are [test-in simplified]
       (= simplified (evaluate test-in))
-    ; "2 * 6 - (13 + (5 * 3)) / 4" "5")))
-    "2x + 6y - (12 + (5x - 3y)) + 4" "- 3x + 9y - 8")))
-  ; (println (evaluate "2 * 6 - (13 + (5 * 3)) / 4")))
+    ;"2 + 6 - (1 - 3) + 4" 8)))
+    "2x + 6y - 1x" "1x + 6y")))
