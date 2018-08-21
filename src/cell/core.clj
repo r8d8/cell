@@ -4,51 +4,53 @@
 (require '[clojure.string :as str])
 (use 'clojure.walk)
 
-(def buf (atom {}))
 
-(def stack-sign (atom []))
+;(def stack-sign (atom []))
 
-(defn tpos? []
+(defn tpos? [s]
   "Current state of sign"
-  (even? (count (filter #(= % "-") @stack-sign))))
+  (even? (count (filter #(= % "-") s))))
 
-(defn to-map [coef var]
-  "Add coeficient to vars"
+(defn to-map [coef var m]
+  "Add coefficient to vars"
   (println ">> DEBUG to map: " var coef)
   (def v (cond
-           (nil? var) (:_const)
+           (nil? var) (keyword "_const")
             :else  (keyword var)))
-  (let [s  (get @buf v [])]
-    (println ">> DEBUG to map inner: " s)
-    (swap! buf assoc v (conj s coef)))
-  (println ">> DEBUG to map after: " @buf)
-  )
+  (update m v #())
+  ;(let [s  (get m v [])]
+  ;  (println ">> DEBUG to map inner: " v s)
+  ;  (assoc m v (conj s coef)))
+  (println ">> DEBUG to map after: " m))
 
-(defn remove-parens [s]
-  "Unwrap parens from expression using stack"
-  (map #(case %
-          ("-" "+") (swap! stack-sign conj %)
+(defn convert [s]
+  "Converts splitted expression into map {:var [coef1 coef2 ...]}.
+  Solve sign of coefficients using stack"
+  (def stack-sign [])
+  (reduce (fn [m c] (case c
+          ("-" "+") (conj stack-sign c)
           "(" ()
-          ")" (if (seq? @stack-sign)
-                (swap! stack-sign pop))
-          (let [[_ c v] (re-matches #"(\d+)([a-z])?" %)]
-            (if (tpos?)
-              (to-map (Integer. c) v)
-              (to-map (* -1 (Integer. c)) v))
-            (if (seq @stack-sign)
-              (swap! stack-sign pop))))
-       s))
+          ")" (if (seq? stack-sign)
+                (pop stack-sign))
+          (let [[_ c v] (re-matches #"(\d+)([a-z])?" c)]
+            (if (tpos? stack-sign)
+              (to-map (Integer. c) v m)
+              (to-map (* -1 (Integer. c)) v m))
+            (if (seq stack-sign)
+              (pop stack-sign )))))
+          {} s))
 
 (defn parse [s]
-  "Parse a string into a list of numbers, ops, and lists"
+  "Parse a string into map of variables and coefficients"
   (-> (str/trim s)
       (.replaceAll "([+-])" " $1 ")
       (str/split #"\s+")
-      remove-parens))
+      convert))
 
-(defn simplify []
-  "Calculate coeficients"
-  (doseq [[k v] @buf] (swap! buf assoc k (reduce + v))))
+(defn simplify [m]
+  "Calculate coefficients"
+  (doseq [[k v] m] (assoc m k (reduce + v)))
+  m)
 
 (defn stringify [m]
   "Construct string expression"
@@ -73,10 +75,10 @@
   "Parse and evaluate an infix arithmetic expression"
   ;(stringify (simplify (parse s))))
   (def c (parse s))
-  (println ">>> DEBUG coeficient map:" c)
-  (simplify)
-  (let [res (fmt (stringify @buf))]
-    (println ">>>>>>>>>>>>> DEBUG str:" res)
+  ;(println ">>> DEBUG coeficient map:" c)
+  (def m (simplify c))
+  (let [res (fmt (stringify m))]
+    ;(println ">>>>>>>>>>>>> DEBUG str:" res)
     res))
 
 (defn -main
