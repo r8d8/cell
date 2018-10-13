@@ -43,7 +43,7 @@
 (defn parse [s]
   "Parse a string into map of variables and coefficients"
   (-> (str/trim s)
-      (.replaceAll "([+-])" " $1 ")
+      (str/replace #"[/(+-/)]" #(str " " % " "))
       (str/split #"\s+")
       convert))
 
