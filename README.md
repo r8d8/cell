@@ -1,6 +1,6 @@
 # cell
 
-Playground for Clojure.
+NLP Playground for Clojure.
 
 ## Usage
 
